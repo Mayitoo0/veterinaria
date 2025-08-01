@@ -28,22 +28,27 @@
                         <div class="mb-3">
                             <label for="nombreMascota" class="form-label">Nombre de mascota</label>
                             <input type="text" class="form-control" id="nombreMascota" required>
+                            <div class="invalid-feedback">Por favor ingrese el nombre de la mascota.</div>
                         </div>
                         <div class="mb-3">
                             <label for="nombrePropietario" class="form-label">Nombre propietario</label>
                             <input type="text" class="form-control" id="nombrePropietario" required>
+                            <div class="invalid-feedback">Por favor ingrese el nombre del propietario.</div>
                         </div>
                         <div class="mb-3">
                             <label for="telefono" class="form-label">Teléfono</label>
                             <input type="tel" class="form-control" id="telefono" required>
+                            <div class="invalid-feedback">Por favor ingrese un número de teléfono válido.</div>
                         </div>
                         <div class="mb-3">
                             <label for="fechaCita" class="form-label">Fecha de cita</label>
                             <input type="date" class="form-control" id="fechaCita" required>
+                            <div class="invalid-feedback">Por favor seleccione una fecha válida (futura).</div>
                         </div>
                         <div class="mb-3">
                             <label for="horaCita" class="form-label">Hora de la cita</label>
                             <input type="time" class="form-control" id="horaCita" required>
+                            <div class="invalid-feedback">El horario de atención es de 8:00 am a 6:00 pm.</div>
                         </div>
                         <div class="mb-3">
                             <label for="tipoMascota" class="form-label">Tipo de mascota</label>
@@ -60,10 +65,12 @@
                                 <option>Vaca</option>
                                 <option>Cerdo</option>
                             </select>
+                            <div class="invalid-feedback">Por favor seleccione un tipo de mascota.</div>
                         </div>
                         <div class="mb-3">
                             <label for="sintomas" class="form-label">Síntomas</label>
                             <textarea class="form-control" id="sintomas" rows="3" required></textarea>
+                            <div class="invalid-feedback">Por favor describa los síntomas.</div>
                         </div>
                         <div class="mb-3">
                             <label for="estadoCita" class="form-label">Estado</label>
@@ -133,8 +140,8 @@
         <div class="card position-relative">
             ${imgSrc ? `<img src="${imgSrc}" alt="${cita.tipoMascota}" style="width:48px;height:48px;position:absolute;top:10px;right:10px;object-fit:contain;">` : ''}
             <div class="card-body">
-                <h5 class="card-title">${cita.nombreMascota}</h5>
-                <h6 class="card-subtitle mb-2 text-muted">${cita.nombrePropietario}</h6>
+                <h5 class="card-title">Mascota: ${cita.nombreMascota}</h5>
+                <h6 class="card-subtitle mb-2 text-muted">Propietario: ${cita.nombrePropietario}</h6>
                 <p class="card-text">
                     <b>ID:</b> <span style="font-size:0.85em">${cita.id}</span><br>
                     <b>Tel:</b> ${cita.telefono}<br>
@@ -151,30 +158,91 @@
             }
         }
 
+        function validarCampoVacio(campo) {
+            if (!campo.value || !campo.value.trim()) {
+                campo.classList.add('is-invalid');
+                return false;
+            }
+            campo.classList.remove('is-invalid');
+            return true;
+        }
+
+        function validarFecha(fechaInput) {
+            const hoy = new Date();
+            hoy.setHours(0, 0, 0, 0);
+            
+            const fechaSeleccionada = new Date(fechaInput.value);
+            
+            if (fechaSeleccionada < hoy) {
+                fechaInput.classList.add('is-invalid');
+                return false;
+            }
+            fechaInput.classList.remove('is-invalid');
+            return true;
+        }
+
+        function validarHora(horaInput) {
+            const hora = horaInput.value;
+            if (!hora) {
+                horaInput.classList.add('is-invalid');
+                return false;
+            }
+            
+            const [horas, minutos] = hora.split(':').map(Number);
+            if (horas < 8 || horas > 18 || (horas === 18 && minutos > 0)) {
+                horaInput.classList.add('is-invalid');
+                return false;
+            }
+            
+            horaInput.classList.remove('is-invalid');
+            return true;
+        }
+
         document.addEventListener('DOMContentLoaded', function () {
             cargarCitasDeLocalStorage();
             renderCitas();
 
+            const fechaInput = document.getElementById('fechaCita');
+            const hoy = new Date().toISOString().split('T')[0];
+            fechaInput.setAttribute('min', hoy);
+
             const formCita = document.getElementById('formCita');
             formCita.addEventListener('submit', function (e) {
                 e.preventDefault();
+                
+                const camposValidos = [
+                    validarCampoVacio(document.getElementById('nombreMascota')),
+                    validarCampoVacio(document.getElementById('nombrePropietario')),
+                    validarCampoVacio(document.getElementById('telefono')),
+                    validarCampoVacio(document.getElementById('tipoMascota')),
+                    validarCampoVacio(document.getElementById('sintomas')),
+                    validarFecha(document.getElementById('fechaCita')),
+                    validarHora(document.getElementById('horaCita'))
+                ];
+                
+                if (camposValidos.some(valido => !valido)) {
+                    return;
+                }
+
                 const cita = {
                     id: editandoId ? editandoId : uuid.v4(),
-                    nombreMascota: document.getElementById('nombreMascota').value,
-                    nombrePropietario: document.getElementById('nombrePropietario').value,
-                    telefono: document.getElementById('telefono').value,
+                    nombreMascota: document.getElementById('nombreMascota').value.trim(),
+                    nombrePropietario: document.getElementById('nombrePropietario').value.trim(),
+                    telefono: document.getElementById('telefono').value.trim(),
                     fechaCita: document.getElementById('fechaCita').value,
                     horaCita: document.getElementById('horaCita').value,
                     tipoMascota: document.getElementById('tipoMascota').value,
-                    sintomas: document.getElementById('sintomas').value,
+                    sintomas: document.getElementById('sintomas').value.trim(),
                     estado: document.getElementById('estadoCita').value
                 };
+                
                 if (editandoId) {
                     citas = citas.map(c => c.id === editandoId ? cita : c);
                     editandoId = null;
                 } else {
                     citas.push(cita);
                 }
+                
                 guardarCitasEnLocalStorage();
                 renderCitas();
                 formCita.reset();
@@ -182,10 +250,41 @@
                 bootstrap.Modal.getInstance(document.getElementById('modalCita')).hide();
             });
 
+            document.getElementById('nombreMascota').addEventListener('blur', function() {
+                validarCampoVacio(this);
+            });
+            
+            document.getElementById('nombrePropietario').addEventListener('blur', function() {
+                validarCampoVacio(this);
+            });
+            
+            document.getElementById('telefono').addEventListener('blur', function() {
+                validarCampoVacio(this);
+            });
+            
+            document.getElementById('tipoMascota').addEventListener('blur', function() {
+                validarCampoVacio(this);
+            });
+            
+            document.getElementById('sintomas').addEventListener('blur', function() {
+                validarCampoVacio(this);
+            });
+            
+            document.getElementById('fechaCita').addEventListener('change', function() {
+                validarFecha(this);
+            });
+            
+            document.getElementById('horaCita').addEventListener('change', function() {
+                validarHora(this);
+            });
+
             document.querySelector('[data-bs-target="#modalCita"]').addEventListener('click', function() {
                 editandoId = null;
                 formCita.reset();
                 document.getElementById('estadoCita').value = "Abierta";
+
+                const inputs = formCita.querySelectorAll('input, select, textarea');
+                inputs.forEach(input => input.classList.remove('is-invalid'));
             });
 
             document.getElementById('busqueda').addEventListener('input', function() {
@@ -194,6 +293,7 @@
                     document.getElementById('filtroEstado').value
                 );
             });
+            
             document.getElementById('filtroEstado').addEventListener('change', function() {
                 renderCitas(
                     document.getElementById('busqueda').value.toLowerCase(),
@@ -205,6 +305,7 @@
         function editarCita(id) {
             const cita = citas.find(c => c.id === id);
             if (!cita) return;
+            
             editandoId = id;
             document.getElementById('nombreMascota').value = cita.nombreMascota;
             document.getElementById('nombrePropietario').value = cita.nombrePropietario;
@@ -214,6 +315,17 @@
             document.getElementById('tipoMascota').value = cita.tipoMascota;
             document.getElementById('sintomas').value = cita.sintomas;
             document.getElementById('estadoCita').value = cita.estado;
+
+            const tipo = cita.tipoMascota;
+            const img = document.getElementById('imgMascota');
+            if (imagenesMascotas[tipo]) {
+                img.src = imagenesMascotas[tipo];
+                img.alt = tipo;
+                img.style.display = 'inline-block';
+            } else {
+                img.style.display = 'none';
+            }
+            
             new bootstrap.Modal(document.getElementById('modalCita')).show();
         }
 
@@ -228,8 +340,8 @@
             }).then((result) => {
                 if (result.isConfirmed) {
                     citas = citas.filter(c => c.id !== id);
+                    guardarCitasEnLocalStorage();
                     renderCitas();
-                    console.log("Cita eliminada. Citas restantes:", citas);
                 }
             });
         }
